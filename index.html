@@ -2235,45 +2235,40 @@ document.addEventListener('DOMContentLoaded', () => {
   if (IS_STANDALONE) {
     // === Standalone mode: load from embedded data, hide edit UI ===
     isEditMode = false;
+    try { document.getElementById('loading').classList.remove('active'); } catch(e) {}
 
-    // Immediately remove loading overlay
-    try {
-      const loadingEl = document.getElementById('loading');
-      if (loadingEl) loadingEl.classList.remove('active');
-    } catch(e) {}
-
-    // Load embedded data
-    try {
-      const el = document.getElementById('dataPlaceholder');
-      if (el) {
-        const pack = JSON.parse(el.textContent.trim());
+    // Load embedded data directly into DataStore
+    var packEl = document.getElementById('dataPlaceholder');
+    if (packEl) {
+      try {
+        var pack = JSON.parse(packEl.textContent.trim());
         if (pack && pack.cycles) {
-          Object.keys(pack.cycles).forEach(k => {
-            DataStore.cycles[k] = pack.cycles[k];
-          });
+          var keys = Object.keys(pack.cycles);
+          for (var i = 0; i < keys.length; i++) {
+            DataStore.cycles[keys[i]] = pack.cycles[keys[i]];
+          }
+          // Set primary to first cycle
+          DataStore.primaryKey = keys[0];
         }
-      }
-    } catch(e) { console.error('Embedded data error:', e); }
+      } catch(e) { console.error(e); }
+    }
 
-    // Hide edit UI elements (fail-safe)
-    ['btnImport','btnExportPack','btnImportPack','btnClear','btnEditMode','btnGenerate','loginOverlay'].forEach(id => {
-      try { const el = document.getElementById(id); if (el) el.style.display = 'none'; } catch(e) {}
-    });
+    // Hide edit UI
+    var hideIds = ['btnImport','btnExportPack','btnImportPack','btnClear','btnEditMode','btnGenerate','loginOverlay'];
+    for (var j = 0; j < hideIds.length; j++) {
+      try { var he = document.getElementById(hideIds[j]); if (he) he.style.display = 'none'; } catch(e) {}
+    }
     try {
-      const badge = document.getElementById('roleBadge');
-      if (badge) { badge.className = 'role-badge editor'; badge.textContent = '📋 只读看板'; }
-      const noteWrap = document.querySelector('.note-input-wrap');
-      if (noteWrap) noteWrap.style.display = 'none';
+      var bd = document.getElementById('roleBadge');
+      if (bd) { bd.className = 'role-badge editor'; bd.textContent = '📋 只读看板'; }
+      var nw = document.querySelector('.note-input-wrap');
+      if (nw) nw.style.display = 'none';
     } catch(e) {}
 
-    // Show dashboard
+    // Render: update selectors and show dashboard
     updateCycleSelectors();
-    const cycleKeys = DataStore.getCycleKeys();
-    if (cycleKeys.length > 0) {
-      DataStore.primaryKey = cycleKeys[0];
-      const sel = document.getElementById('primaryCycle');
-      if (sel) sel.value = DataStore.primaryKey;
-    }
+    var sel = document.getElementById('primaryCycle');
+    if (sel && DataStore.primaryKey) sel.value = DataStore.primaryKey;
     refreshDashboard();
     return;
   }
